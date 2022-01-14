@@ -5,7 +5,7 @@ using Mango.Web.Services.IServices;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddHttpClient<IProductService, ProductService>();
-SD.ProductAPIBase = builder.Configuration["ServiceUrls:ProductAPI"];
+SD.ProductAPIBase = builder.Configuration["ServicesUrls:ProductAPI"];
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddControllersWithViews();
 
