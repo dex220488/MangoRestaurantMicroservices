@@ -1,5 +1,7 @@
 ﻿using Mango.Web.Models;
 using Mango.Web.Services.IServices;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 
@@ -17,7 +19,8 @@ namespace Mango.Web.Controllers
         public async Task<IActionResult> ProductIndex()
         {
             List<ProductDto> list = new();
-            var response = await _productService.GetAllProductsAsync<ResponseDto>();
+            var accessToken = await HttpContext.GetTokenAsync("access_token");
+            var response = await _productService.GetAllProductsAsync<ResponseDto>(accessToken);
             if (response != null && response.IsSuccess)
             {
                 list = JsonConvert.DeserializeObject<List<ProductDto>>(Convert.ToString(response.Result));
@@ -34,9 +37,10 @@ namespace Mango.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ProductCreate(ProductDto model)
         {
-            if (!ModelState.IsValid)
+            if (ModelState.IsValid)
             {
-                var response = await _productService.CreateProductAsync<ResponseDto>(model);
+                var accessToken = await HttpContext.GetTokenAsync("access_token");
+                var response = await _productService.CreateProductAsync<ResponseDto>(model, accessToken);
                 if (response != null && response.IsSuccess)
                 {
                     return RedirectToAction(nameof(ProductIndex));
@@ -47,7 +51,8 @@ namespace Mango.Web.Controllers
 
         public async Task<IActionResult> ProductEdit(int productId)
         {
-            var response = await _productService.GetProductByIdAsync<ResponseDto>(productId);
+            var accessToken = await HttpContext.GetTokenAsync("access_token");
+            var response = await _productService.GetProductByIdAsync<ResponseDto>(productId, accessToken);
             if (response != null && response.IsSuccess)
             {
                 ProductDto model = JsonConvert.DeserializeObject<ProductDto>(Convert.ToString(response.Result));
@@ -62,7 +67,8 @@ namespace Mango.Web.Controllers
         {
             if (!ModelState.IsValid)
             {
-                var response = await _productService.UpdateProductAsync<ResponseDto>(model);
+                var accessToken = await HttpContext.GetTokenAsync("access_token");
+                var response = await _productService.UpdateProductAsync<ResponseDto>(model, accessToken);
                 if (response != null && response.IsSuccess)
                 {
                     return RedirectToAction(nameof(ProductIndex));
@@ -71,9 +77,11 @@ namespace Mango.Web.Controllers
             return View(model);
         }
 
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> ProductDelete(int productId)
         {
-            var response = await _productService.GetProductByIdAsync<ResponseDto>(productId);
+            var accessToken = await HttpContext.GetTokenAsync("access_token");
+            var response = await _productService.GetProductByIdAsync<ResponseDto>(productId, accessToken);
             if (response != null && response.IsSuccess)
             {
                 ProductDto model = JsonConvert.DeserializeObject<ProductDto>(Convert.ToString(response.Result));
@@ -83,12 +91,14 @@ namespace Mango.Web.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ProductDelete(ProductDto model)
         {
-            if (!ModelState.IsValid)
+            if (model.ProductId != 0)
             {
-                var response = await _productService.DeleteProductAsync<ResponseDto>(model.ProductId);
+                var accessToken = await HttpContext.GetTokenAsync("access_token");
+                var response = await _productService.DeleteProductAsync<ResponseDto>(model.ProductId, accessToken);
                 if (response != null && response.IsSuccess)
                 {
                     return RedirectToAction(nameof(ProductIndex));

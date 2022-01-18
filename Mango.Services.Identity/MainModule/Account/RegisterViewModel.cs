@@ -1,9 +1,5 @@
 ﻿using IdentityServerHost.Quickstart.UI;
-using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Mango.Services.Identity.MainModule.Account
 {
@@ -14,8 +10,10 @@ namespace Mango.Services.Identity.MainModule.Account
 
         [Required]
         public string Email { get; set; }
+
         public string FirstName { get; set; }
         public string LastName { get; set; }
+
         [Required]
         public string Password { get; set; }
 
@@ -30,7 +28,5 @@ namespace Mango.Services.Identity.MainModule.Account
 
         public bool IsExternalLoginOnly => EnableLocalLogin == false && ExternalProviders?.Count() == 1;
         public string ExternalLoginScheme => IsExternalLoginOnly ? ExternalProviders?.SingleOrDefault()?.AuthenticationScheme : null;
-
-
     }
 }
