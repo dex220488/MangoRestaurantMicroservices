@@ -8,8 +8,12 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddHttpClient<IProductService, ProductService>();
 SD.ProductAPIBase = builder.Configuration["ServicesUrls:ProductAPI"];
 SD.ShopingCartAPIBase = builder.Configuration["ServicesUrls:ShoppingCartAPI"];
+SD.CouponAPIBase = builder.Configuration["ServicesUrls:CouponAPI"];
+
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<ICartService, CartService>();
+builder.Services.AddScoped<ICouponService, CouponService>();
+
 builder.Services.AddControllersWithViews();
 
 builder.Services.AddAuthentication(options =>
