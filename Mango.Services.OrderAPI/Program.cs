@@ -1,28 +1,30 @@
 using AutoMapper;
-using Mango.MessageBus;
-using Mango.Services.ShoppingCartAPI;
-using Mango.Services.ShoppingCartAPI.DbContexts;
-using Mango.Services.ShoppingCartAPI.Repository;
+using Mango.Services.OrderAPI;
+using Mango.Services.OrderAPI.DbContexts;
+using Mango.Services.OrderAPI.Extensions;
+using Mango.Services.OrderAPI.Messaging;
+using Mango.Services.OrderAPI.Repository;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")
-));
+     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
+);
 
 IMapper mapper = MappingConfig.RegisterMaps().CreateMapper();
 builder.Services.AddSingleton(mapper);
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
-builder.Services.AddScoped<ICartRepository, CartRepository>();
-builder.Services.AddSingleton<IMessageBus, AzureServiceBusMessageBus>();
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+
+var optionBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
+optionBuilder.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
+builder.Services.AddSingleton(new OrderRepository(optionBuilder.Options));
+builder.Services.AddSingleton<IAzureServiceBusConsumer, AzureSesrviceBusConsumer>();
+
 builder.Services.AddControllers();
-builder.Services.AddHttpClient<ICouponRepository, CouponRepository>(u => u.BaseAddress =
-new Uri(builder.Configuration["ServiceUrls:CouponAPI"])
-);
 builder.Services.AddAuthentication("Bearer")
     .AddJwtBearer("Bearer", options =>
     {
@@ -45,7 +47,7 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Mango.Services.ShoppingCartAPI" });
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Mango.Services.OrderAPI" });
     c.EnableAnnotations();
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
@@ -83,9 +85,13 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
-
-app.MapControllers();
+app.UseEndpoints(endpoints =>
+{
+    endpoints.MapControllers();
+});
+app.UseAzureServiceBusConsumer();
 
 app.Run();

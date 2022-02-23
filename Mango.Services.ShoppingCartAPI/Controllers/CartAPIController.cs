@@ -1,4 +1,5 @@
-﻿using Mango.Services.ShoppingCartAPI.Messages;
+﻿using Mango.MessageBus;
+using Mango.Services.ShoppingCartAPI.Messages;
 using Mango.Services.ShoppingCartAPI.Models.Dto;
 using Mango.Services.ShoppingCartAPI.Repository;
 using Microsoft.AspNetCore.Mvc;
@@ -10,11 +11,15 @@ namespace Mango.Services.ShoppingCartAPI.Controllers
     public class CartAPIController : Controller
     {
         private readonly ICartRepository _cartRepository;
+        private readonly ICouponRepository _couponRepository;
+        private readonly IMessageBus _messageBus;
         protected ResponseDto _response;
 
-        public CartAPIController(ICartRepository cartRepository)
+        public CartAPIController(ICartRepository cartRepository, IMessageBus messageBus, ICouponRepository couponRepository)
         {
             _cartRepository = cartRepository;
+            _couponRepository = couponRepository;
+            _messageBus = messageBus;
             this._response = new ResponseDto();
         }
 
@@ -133,9 +138,22 @@ namespace Mango.Services.ShoppingCartAPI.Controllers
                 {
                     return BadRequest();
                 }
+
+                if (!string.IsNullOrEmpty(checkoutHeader.CouponCode))
+                {
+                    CouponDto coupon = await _couponRepository.GetCoupon(checkoutHeader.CouponCode);
+                    if (checkoutHeader.DiscountTotal != coupon.DiscountAmount)
+                    {
+                        _response.IsSuccess = false;
+                        _response.ErrorMessages = new List<string>() { "Coupon Price has changed, please confirm" };
+                        _response.DisplayMessage = "Coupon Price has changed, please confirm";
+                        return _response;
+                    }
+                }
                 checkoutHeader.CartDetails = cartDto.CartDetails;
 
                 // logic to add message to process order
+                await _messageBus.PublishMessage(checkoutHeader, "checkoutmessagetopic");
             }
             catch (Exception ex)
             {
