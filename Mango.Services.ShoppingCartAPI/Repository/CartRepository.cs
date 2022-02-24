@@ -29,7 +29,7 @@ namespace Mango.Services.ShoppingCartAPI.Repository
         public async Task<bool> ClearCart(string userId)
         {
             var cartHeaderFromDb = await _db.CartHeader.FirstOrDefaultAsync(u => u.UserId == userId);
-            if (cartHeaderFromDb == null)
+            if (cartHeaderFromDb != null)
             {
                 _db.CartDetails
                     .RemoveRange(_db.CartDetails.Where(u => u.CartHeaderId == cartHeaderFromDb.CartHeaderId));
